@@ -1,0 +1,45 @@
+name: Deploy
+
+# Define when the workflow should run
+on:
+  # Allow manual triggering of the workflow from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    needs: guard_clause # Dependency
+    runs-on: ubuntu-latest # Image to run the worker on.
+
+    permissions: # Permissions to grant the GITHUB_TOKEN.
+      contents: write  # Required permission to make a github release.
+
+    steps:
+      # Checks-out our repository under $GITHUB_WORKSPACE, so our job can access it
+      - uses: actions/checkout@v3
+        with:
+          lfs: true
+
+      # Create a gh-pages artifact in order to deploy to gh-pages.
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          # Path of the directory containing the static assets for our gh pages deployment.
+          path: ${{ env.DEPLOY_DIR }} # optional, default is _site/
+
+  deploy_to_github_pages: # Job that deploys the github-pages artifact to github-pages.
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+
+    runs-on: ubuntu-latest
+    steps:
+      # Deployment to github pages
+      - name: Deploy GitHub Pages site
+        id: deployment
+        uses: actions/deploy-pages@v3
