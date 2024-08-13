@@ -1,0 +1,91 @@
+<!doctype html>
+
+<head>
+    <title>Little Fighter 2</title>
+    <link rel="icon" href="favicon.ico">
+</head>
+
+<script src="libv86.js"></script>
+<script>
+    "use strict";
+
+    window.onload = function () {
+        var emulator = new V86({
+            wasm_path: "v86.wasm",
+            memory_size: 64 * 1024 * 1024,
+            vga_memory_size: 16 * 1024 * 1024,
+            screen_container: document.getElementById("screen_container"),
+            bios: { url: "seabios.bin" },
+            vga_bios: { url: "vgabios.bin" },
+            hda: {
+                url: "windows95.img",
+                size: 209715200,
+                async: true
+            },
+            autostart: true,
+            initial_state: { url: "win95-lf2-onehanded.bin" },
+        });
+        document.getElementById("screen_container").onclick = () => {
+            emulator.lock_mouse();
+        };
+
+        document.getElementById("save").onclick = async () => {
+            const new_state = await emulator.save_state();
+            console.log("Saved state of " + new_state.byteLength + " bytes");
+            const fr = new FileReader();
+            fr.onload = (e) => {
+                localStorage['state'] = e.target.result;
+            };
+            fr.readAsDataURL(new Blob([new_state]));
+            // localStorage.setItem('state', bytesToBase64(new_state));
+        };
+
+        document.getElementById("restore").onclick = async () => {
+            const b64state = localStorage.getItem('state');
+            if (b64state) {
+                const state = base64ToBytes(b64state);
+                await emulator.restore_state(state);
+            }
+        };
+
+        document.getElementById("save_file").onclick = async function () {
+            const new_state = await emulator.save_state();
+            var a = document.createElement("a");
+            a.download = "win95-lf2.bin";
+            a.href = window.URL.createObjectURL(new Blob([new_state]));
+            a.dataset.downloadurl = "application/octet-stream:" + a.download + ":" + a.href;
+            a.click();
+
+            this.blur();
+        };
+
+        function base64ToBytes(base64) {
+            const binString = atob(base64);
+            return Uint8Array.from(binString, (m) => m.codePointAt(0));
+        }
+
+        function bytesToBase64(bytes) {
+            const arr = Array.from(bytes, (byte) =>
+                String.fromCodePoint(byte),
+            );
+            const binString = arr.join("");
+            console.log("binstring", binString, arr, bytes);
+            return btoa(binString);
+        }
+    };
+</script>
+
+<body style="background-color: black; color: #ccc; display: flex; align-items: center; flex-direction: column;">
+    <div>
+        <input id="save" type="button" value="Save state">
+        <input id="restore" type="button" value="Restore state">
+        <input id="save_file" type="button" value="Save state to file">
+        <hr>
+    </div>
+
+    <!-- A minimal structure for the ScreenAdapter defined in browser/screen.js -->
+    <div id="screen_container" style="display: inline-block">
+        <div style="white-space: pre; font: 14px monospace; line-height: 14px"></div>
+        <canvas style="display: none"></canvas>
+    </div>
+</body>
