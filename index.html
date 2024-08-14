@@ -37,7 +37,22 @@
 <script>
     "use strict";
 
-    window.onload = function () {
+    window.onload = async () => {
+        const [response_part1, response_part2, response_part3] = await Promise.all([
+            fetch('windows95.img.part1.gz'),
+            fetch('windows95.img.part2.gz'),
+            fetch('windows95.img.part3.gz'),
+        ]);
+        const [part1, part2, part3] = await Promise.all([
+            response_part1.arrayBuffer(),
+            response_part2.arrayBuffer(),
+            response_part3.arrayBuffer(),
+        ]);
+        const ds = new DecompressionStream("gzip");
+        const win95Image_gzipped = new Blob([part1, part2, part3]);
+        const win95Image_stream = win95Image_gzipped.stream().pipeThrough(ds);
+        const win95Image = await new Response(win95Image_stream).arrayBuffer();
+
         var emulator = new V86({
             wasm_path: "v86.wasm",
             memory_size: 64 * 1024 * 1024,
@@ -46,13 +61,13 @@
             bios: { url: "seabios.bin" },
             vga_bios: { url: "vgabios.bin" },
             hda: {
-                url: "windows95.img",
-                size: 209715200,
-                async: true
+                buffer: win95Image,
+                // size: 209715200,
             },
             autostart: true,
             initial_state: { url: "win95-lf2-default.bin.zst" },
         });
+
         document.getElementById("screen_container").onclick = () => {
             emulator.lock_mouse();
         };
