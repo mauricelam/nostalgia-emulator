@@ -2,3 +2,4 @@
 *.img filter=lfs diff=lfs merge=lfs -text
 *.bin.zst filter=lfs diff=lfs merge=lfs -text
 *.img.*.gz filter=lfs diff=lfs merge=lfs -text
+*.img.*.zst filter=lfs diff=lfs merge=lfs -text

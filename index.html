@@ -44,14 +44,13 @@
             fetch('windows95.img.part3.gz'),
         ]);
         const [part1, part2, part3] = await Promise.all([
-            response_part1.arrayBuffer(),
-            response_part2.arrayBuffer(),
-            response_part3.arrayBuffer(),
+            response_part1.blob(),
+            response_part2.blob(),
+            response_part3.blob(),
         ]);
-        const ds = new DecompressionStream("gzip");
         const win95Image_gzipped = new Blob([part1, part2, part3]);
-        const win95Image_stream = win95Image_gzipped.stream().pipeThrough(ds);
-        const win95Image = await new Response(win95Image_stream).arrayBuffer();
+        const win95Image_stream = win95Image_gzipped.stream().pipeThrough(new DecompressionStream('gzip'));
+        const win95Image = new File([await new Response(win95Image_stream).arrayBuffer()], "windows95.img");
 
         var emulator = new V86({
             wasm_path: "v86.wasm",
@@ -63,6 +62,7 @@
             hda: {
                 buffer: win95Image,
                 // size: 209715200,
+                async: true,
             },
             autostart: true,
             initial_state: { url: "win95-lf2-default.bin.zst" },
