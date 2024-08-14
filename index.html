@@ -3,6 +3,34 @@
 <head>
     <title>Little Fighter 2</title>
     <link rel="icon" href="favicon.ico">
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .draghint {
+            display: none;
+        }
+
+        div:hover>.draghint {
+            display: inline-block;
+        }
+
+        .lf2-control>img {
+            position: absolute;
+            display: none;
+            width: 500px;
+            border: 1px solid #666;
+        }
+
+        .lf2-control:hover>img {
+            display: block;
+        }
+
+        #savefile-container:hover::before {
+            content: 'Drag saved file here to load';
+        }
+    </style>
 </head>
 
 <script src="libv86.js"></script>
@@ -23,35 +51,16 @@
                 async: true
             },
             autostart: true,
-            initial_state: { url: "win95-lf2-onehanded.bin.zst" },
+            initial_state: { url: "win95-lf2-default.bin.zst" },
         });
         document.getElementById("screen_container").onclick = () => {
             emulator.lock_mouse();
         };
 
-        document.getElementById("save").onclick = async () => {
-            const new_state = await emulator.save_state();
-            console.log("Saved state of " + new_state.byteLength + " bytes");
-            const fr = new FileReader();
-            fr.onload = (e) => {
-                localStorage['state'] = e.target.result;
-            };
-            fr.readAsDataURL(new Blob([new_state]));
-            // localStorage.setItem('state', bytesToBase64(new_state));
-        };
-
-        document.getElementById("restore").onclick = async () => {
-            const b64state = localStorage.getItem('state');
-            if (b64state) {
-                const state = base64ToBytes(b64state);
-                await emulator.restore_state(state);
-            }
-        };
-
         document.getElementById("save_file").onclick = async function () {
             const new_state = await emulator.save_state();
             var a = document.createElement("a");
-            a.download = "win95-lf2.bin";
+            a.download = "nostalgia-saved-state.bin";
             a.href = window.URL.createObjectURL(new Blob([new_state]));
             a.dataset.downloadurl = "application/octet-stream:" + a.download + ":" + a.href;
             a.click();
@@ -59,29 +68,48 @@
             this.blur();
         };
 
-        function base64ToBytes(base64) {
-            const binString = atob(base64);
-            return Uint8Array.from(binString, (m) => m.codePointAt(0));
-        }
+        document.addEventListener('dragover', (e) => e.preventDefault(), false);
 
-        function bytesToBase64(bytes) {
-            const arr = Array.from(bytes, (byte) =>
-                String.fromCodePoint(byte),
-            );
-            const binString = arr.join("");
-            console.log("binstring", binString, arr, bytes);
-            return btoa(binString);
-        }
+        document.getElementById('lf2-default').onclick = async () => {
+            console.log('Loading LF2 default controls');
+            const response = await fetch('win95-lf2-default.bin.zst');
+            emulator.restore_state(await response.arrayBuffer());
+        };
+
+        document.getElementById('lf2-onehanded').onclick = async () => {
+            console.log('Loading LF2 one-handed controls');
+            const response = await fetch('win95-lf2-onehanded.bin.zst');
+            emulator.restore_state(await response.arrayBuffer());
+        };
+
+        document.addEventListener('drop', (e) => {
+            const file = e.dataTransfer.files[0];
+            const fr = new FileReader();
+            fr.onloadend = (e) => { emulator.restore_state(fr.result); };
+            fr.readAsArrayBuffer(file);
+
+            e.preventDefault();
+        }, false);
     };
 </script>
 
 <body style="background-color: black; color: #ccc; display: flex; align-items: center; flex-direction: column;">
-    <div>
-        <input id="save" type="button" value="Save state">
-        <input id="restore" type="button" value="Restore state">
-        <input id="save_file" type="button" value="Save state to file">
-        <hr>
+    <div style="width: 100%; display: flex">
+        <div style="flex: 1;">
+            <div class="lf2-control" style="display: inline-block; position: relative;">
+                <button id="lf2-default">Load default controls</button>
+                <img src="default-controls.png">
+            </div>
+            <div class="lf2-control" style="display: inline-block; position: relative;">
+                <button id="lf2-onehanded">Load one-handed controls</button>
+                <img src="onehanded-controls.png">
+            </div>
+        </div>
+        <div id="savefile-container" style="flex: 1; text-align: right;">
+            <button id="save_file">Save current state to file</button>
+        </div>
     </div>
+    <hr style="width: 100%;">
 
     <!-- A minimal structure for the ScreenAdapter defined in browser/screen.js -->
     <div id="screen_container" style="display: inline-block">
