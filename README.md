@@ -14,7 +14,7 @@ We are almost in the year 2025, so it's about time for this to happen: [![image]
 
 Little Figher 2 is a closed-source Windows game, so to run it, we have to emulate the underlying environment.
 
-So we run Windows 95, which is also closed-source, by emulating _it's_ environment.
+So we run Windows 95, which is also closed-source, by emulating _its_ environment.
 
 Windows 95 is compiled to work with x86, so we use an [x86 emulator](https://github.com/copy/v86) compiled to webassembly.
 
